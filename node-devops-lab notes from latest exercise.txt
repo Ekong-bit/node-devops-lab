@@ -1,0 +1,111 @@
+So far ---
+
+Local tests with my system
+node.js 🟢
+docker 🟢
+github 🟢
+
+## next up push to AWS, After deploying my IaC, where ECR, EC2, Jenkins, S3 and EB were activated
+## jenkins never just run after the IaC deploys
+## so I logged in with 
+
+ssh -i C:\code\ekong-iac ec2-user@18.170.116.75 
+
+//entered the pass-phrase - " Ab1234! "
+
+
+#################################################
+##### the fix to get Jenkins running ############
+#################################################
+
+#Enable Jenkins repo
+
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo tee /etc/yum.repos.d/jenkins.repo >/dev/null <<'EOF'
+[jenkins]
+name=Jenkins
+baseurl=https://pkg.jenkins.io/redhat-stable
+gpgcheck=1
+gpgkey=https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+enabled=1
+EOF
+
+
+# Check OS release
+
+cat /etc/os-release
+
+# If Amazon Linux @ install Jenkins with yum, not dnf
+
+sudo yum update -y
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+sudo yum install -y java-17-amazon-corretto
+sudo tee /etc/yum.repos.d/jenkins.repo >/dev/null <<'EOF'
+[jenkins]
+name=Jenkins
+baseurl=https://pkg.jenkins.io/redhat-stable
+gpgcheck=1
+gpgkey=https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+enabled=1
+EOF
+sudo yum install -y jenkins
+sudo systemctl enable --now jenkins
+sudo systemctl status jenkins --no-pager
+
+
+#Check at http://http://18.170.116.75:8080/ and get the initial admin password: 
+
+sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+
+# The output I got -> 4aa31ac50dc044c28feed9a1af87b306
+************************************************************
+
+###credentials for jenkins##
+
+http://18.170.116.75:8080/
+eedim@outlook.com
+USN: ekong-admin PWD: ekong-admin
+
+
+****************************************************
+
+#test that jenkins can build & deploy
+
+**************************************************
+
+# Let Jenkins use Docker (then restart Jenkins)
+sudo usermod -aG docker jenkins
+sudo systemctl restart docker || true
+sudo systemctl restart jenkins
+
+# Install AWS CLI v2 if missing (pipeline uses 'aws' command)
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+sudo yum install -y unzip
+unzip /tmp/awscliv2.zip -d /tmp
+sudo /tmp/aws/install
+
+# Quick checks
+docker --version
+aws --version
+
+
+****************************
+//runs fine
+****************************
+
+###3) Add the pipeline file (Jenkinsfile) to your repo, done and in the code path on my c drive.
+
+###commit and push
+
+git add Jenkinsfile
+git commit -m "ci: add Jenkins pipeline (build → ECR → EB)"
+git push origin main
+
+##Cluely push as ###commit and push didnt work:
+
+### Stage and commit#####
+
+git add infra/*.tf Jenkinsfile infra/user_data_jenkins.sh "node-devops-lab notes from latest exercise.txt"
+git commit -m "Update Terraform files and Jenkinsfile"
+
+

@@ -1,7 +1,7 @@
 variable "project_name" {
   description = "Name prefix for resources"
   type        = string
-  default     = "node-devops-lab"
+  default     = "node-devops-lab-20250817"
 }
 
 variable "aws_region" {
@@ -32,5 +32,5 @@ variable "eb_bundle_bucket" {
 variable "eb_platform_arn" {
   description = "EB Docker on AL2 platform ARN"
   type        = string
-  default     = "arn:aws:elasticbeanstalk:eu-west-2::platform/Docker running on 64bit Amazon Linux 2/5.10.1"
+  default     = "arn:aws:elasticbeanstalk:eu-west-2::platform/Docker running on 64bit Amazon Linux 2023/4.6.3"
 }
