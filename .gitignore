@@ -1,0 +1,14 @@
+# Node
+node_modules
+npm-debug.log
+# Docker
+*.log
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+terraform.tfvars
+# OS
+.DS_Store
+Thumbs.db
