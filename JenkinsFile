@@ -1,0 +1,101 @@
+pipeline {
+  agent any
+
+  // === EDIT THESE 4 VALUES TO MATCH YOUR OUTPUTS ===
+  environment {
+    AWS_REGION       = 'eu-west-2'
+    EB_APP           = 'node-devops-lab-20250817'       // e.g. from eb_cname before "-env"
+    EB_ENV           = 'node-devops-lab-20250817-env'   // exact env name
+    ECR_REPO         = 'node-devops-lab-20250817'       // last segment of ecr_repo_url
+    EB_BUNDLE_BUCKET = 'your-unique-eb-bundles-123456'  // your S3 bucket
+  }
+  // ================================================
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Install & Test') {
+      steps {
+        dir('app') {
+          sh '''
+            npm ci
+            npm test
+          '''
+        }
+      }
+    }
+    stage('Docker Build') {
+      steps {
+        script {
+          def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
+          env.ECR_REPO_URI = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        }
+        dir('app') {
+          sh 'docker build -t ${ECR_REPO_URI}:build-${env.BUILD_NUMBER} .'
+        }
+      }
+    }
+    stage('Push to ECR') {
+      steps {
+        sh '''
+          aws ecr describe-repositories --repository-names ${ECR_REPO} --region ${AWS_REGION} >/dev/null 2>&1 || \
+          aws ecr create-repository --repository-name ${ECR_REPO} --region ${AWS_REGION}
+
+          aws ecr get-login-password --region ${AWS_REGION} \
+            | docker login --username AWS --password-stdin ${ECR_REPO_URI%/*}
+
+          docker push ${ECR_REPO_URI}:build-${BUILD_NUMBER}
+        '''
+      }
+    }
+    stage('Create EB bundle') {
+      steps {
+        sh '''
+          cat > Dockerrun.aws.json <<EOF
+          {
+            "AWSEBDockerrunVersion": 2,
+            "containerDefinitions": [
+              {
+                "name": "web",
+                "image": "${ECR_REPO_URI}:build-${BUILD_NUMBER}",
+                "essential": true,
+                "portMappings": [
+                  { "hostPort": 80, "containerPort": 3000 }
+                ]
+              }
+            ]
+          }
+          EOF
+          zip -r app.zip Dockerrun.aws.json
+        '''
+      }
+    }
+    stage('Upload to S3') {
+      steps {
+        sh 'aws s3 cp app.zip s3://${EB_BUNDLE_BUCKET}/releases/build-${BUILD_NUMBER}.zip --region ${AWS_REGION}'
+      }
+    }
+    stage('Deploy to Elastic Beanstalk') {
+      steps {
+        sh '''
+          aws elasticbeanstalk create-application-version \
+            --application-name ${EB_APP} \
+            --version-label build-${BUILD_NUMBER} \
+            --source-bundle S3Bucket=${EB_BUNDLE_BUCKET},S3Key=releases/build-${BUILD_NUMBER}.zip \
+            --region ${AWS_REGION}
+
+          aws elasticbeanstalk update-environment \
+            --environment-name ${EB_ENV} \
+            --version-label build-${BUILD_NUMBER} \
+            --region ${AWS_REGION}
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false
+    }
+  }
+}
