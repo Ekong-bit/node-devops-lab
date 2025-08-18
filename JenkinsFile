@@ -1,17 +1,28 @@
 pipeline {
-  agent { docker { image 'node:20' } }
+  agent any
 
   environment {
-    AWS_REGION       = 'eu-west-2'          // set correctly
+    AWS_REGION       = 'eu-west-2'
     EB_APP           = 'node-devops-lab-20250817'
     EB_ENV           = 'node-devops-lab-20250817-env'
     ECR_REPO         = 'node-devops-lab-20250817'
     EB_BUNDLE_BUCKET = 'your-unique-eb-bundles-123456'
+
+    // prevent npm cache permission issues
+    HOME             = "${WORKSPACE}"
+    NPM_CONFIG_CACHE = "${WORKSPACE}/.npm"
   }
 
-  // tools block removed: using Docker image 'node:20' instead
-
   stages {
+    stage('Prepare') {
+      steps {
+        sh '''
+          rm -rf app/node_modules
+          mkdir -p "$NPM_CONFIG_CACHE"
+        '''
+      }
+    }
+
     stage('Checkout') {
       steps { checkout scm }
     }
@@ -20,7 +31,7 @@ pipeline {
       steps {
         dir('app') {
           sh '''
-            npm ci
+            npm ci --cache "$NPM_CONFIG_CACHE"
             npm test
           '''
         }
@@ -34,7 +45,7 @@ pipeline {
           env.ECR_REPO_URI = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
         }
         dir('app') {
-          sh 'docker build -t ${ECR_REPO_URI}:build-${BUILD_NUMBER} .'
+          sh 'docker build -t ${ECR_REPO_URI}:build-${env.BUILD_NUMBER} .'
         }
       }
     }
@@ -101,8 +112,6 @@ pipeline {
   }
 
   post {
-    always {
-      archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false
-    }
+    always { archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false }
   }
 }
