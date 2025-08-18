@@ -1,7 +1,6 @@
 pipeline {
   agent any
 
-  // Set your values
   environment {
     AWS_REGION       = 'eu-west-2'
     EB_APP           = 'node-devops-lab-20250817'
@@ -10,9 +9,9 @@ pipeline {
     EB_BUNDLE_BUCKET = 'your-unique-eb-bundles-123456'
   }
 
-  // Ensure Jenkins provides Node and npm
   tools {
-    nodejs 'NodeJS 20'    // Configure this name in Global Tool Configuration
+    // Must match "Manage Jenkins" then "Global Tool Configuration" then "NodeJS installations" name
+    nodejs 'NodeJS 20'
   }
 
   stages {
@@ -24,8 +23,6 @@ pipeline {
       steps {
         dir('app') {
           sh '''
-            node -v
-            npm -v
             npm ci
             npm test
           '''
@@ -37,7 +34,7 @@ pipeline {
       steps {
         script {
           def accountId = sh(script: "aws sts get-caller-identity --query Account --output text", returnStdout: true).trim()
-          env.ECR_REPO_URI = "${accountId}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.ECR_REPO}"
+          env.ECR_REPO_URI = "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
         }
         dir('app') {
           sh 'docker build -t ${ECR_REPO_URI}:build-${BUILD_NUMBER} .'
@@ -107,8 +104,6 @@ pipeline {
   }
 
   post {
-    always {
-      archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false
-    }
+    always { archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false }
   }
 }
