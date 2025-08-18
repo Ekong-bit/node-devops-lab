@@ -109,3 +109,45 @@ git add infra/*.tf Jenkinsfile infra/user_data_jenkins.sh "node-devops-lab notes
 git commit -m "Update Terraform files and Jenkinsfile"
 
 
+##### push #####
+git push origin main
+
+
+################
+Also fill the Jenkinsfile env values:
+AWS_REGION
+EB_APP
+EB_ENV
+ECR_REPO
+EB_BUNDLE_BUCKET
+#################################
+then run the pipeline by doing no 4
+
+###############################
+4) Create the Jenkins job
+###############################
+
+the instruction:
+
+New Item → Pipeline → name: node-devops-lab
+  Definition: Pipeline script from SCM
+  SCM: Git
+  Repository URL: https://github.com/Ekong-bit/node-devops-lab.git
+  Branches: main
+Save → Build Now
+
+*****************push the JenkinsFile - pipeline to github
+# confirm file is tracked
+git status
+
+# stage only the Jenkinsfile
+git add Jenkinsfile
+
+# commit with a clear message
+git commit -m "Add Jenkins pipeline"
+
+# set upstream if not already set
+git branch -M main
+
+# push to GitHub
+git push origin main

@@ -1,0 +1,18 @@
+ip change
+
+how to apply it
+
+# 1) go to the infra dir
+cd infra
+
+# 2) init providers and backend
+terraform init
+
+# 3) validate syntax
+terraform validate
+
+# 4) create a plan using the tfvars in this folder
+terraform plan -var-file="terraform.tfvars" -out="plan.out"
+
+# 5) apply the saved plan
+terraform apply "plan.out"
