@@ -1,5 +1,5 @@
 pipeline {
-  agent any
+  agent { docker { image 'node:20' } }
 
   environment {
     AWS_REGION       = 'eu-west-2'          // set correctly
@@ -9,9 +9,7 @@ pipeline {
     EB_BUNDLE_BUCKET = 'your-unique-eb-bundles-123456'
   }
 
-  tools {
-    nodejs 'NodeJS 20'                      // must match the tool name in Jenkins
-  }
+  // tools block removed: using Docker image 'node:20' instead
 
   stages {
     stage('Checkout') {
