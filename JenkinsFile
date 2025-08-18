@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    AWS_REGION       = 'eu-west-2'
+    AWS_REGION       = 'eu-west-2'          // set correctly
     EB_APP           = 'node-devops-lab-20250817'
     EB_ENV           = 'node-devops-lab-20250817-env'
     ECR_REPO         = 'node-devops-lab-20250817'
@@ -10,8 +10,7 @@ pipeline {
   }
 
   tools {
-    // Must match "Manage Jenkins" then "Global Tool Configuration" then "NodeJS installations" name
-    nodejs 'NodeJS 20'
+    nodejs 'NodeJS 20'                      // must match the tool name in Jenkins
   }
 
   stages {
@@ -104,6 +103,8 @@ pipeline {
   }
 
   post {
-    always { archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false }
+    always {
+      archiveArtifacts artifacts: 'app.zip', onlyIfSuccessful: false
+    }
   }
 }
